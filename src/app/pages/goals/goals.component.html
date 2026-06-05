@@ -1,0 +1,27 @@
+<div class="goals-page">
+  <header class="page-header">
+    <h2>Goals</h2>
+    <p class="subtitle">What you're working toward — grouped by life domain.</p>
+  </header>
+
+  @if (goals().length) {
+    @for (domain of domains; track domain) {
+      @if (groupedGoals().has(domain)) {
+        <section class="domain-section">
+          <h3 class="domain-title">{{ domain }}</h3>
+          <div class="goal-grid">
+            @for (goal of groupedGoals().get(domain)!; track goal.id) {
+              <app-goal-card [goal]="goal" />
+            }
+          </div>
+        </section>
+      }
+    }
+  } @else {
+    <app-empty-state
+      icon="◇"
+      title="No goals yet"
+      message="Goals give your actions direction. Add goals when you're ready to define what matters."
+    />
+  }
+</div>

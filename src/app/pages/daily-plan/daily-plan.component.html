@@ -1,0 +1,75 @@
+<div class="daily-plan-page">
+  <header class="page-header">
+    <div>
+      <h2>Daily Plan</h2>
+      <p class="subtitle">Given your life right now — what are the 3 things you should actually do today?</p>
+    </div>
+    <button type="button" class="btn btn-primary" [disabled]="generating()" (click)="generatePlan()">
+      {{ generating() ? 'Generating…' : "Generate Today's Plan" }}
+    </button>
+  </header>
+
+  @if (plan(); as p) {
+    <div class="plan-summary card">
+      <p>{{ p.summary }}</p>
+      <div class="plan-meta">
+        <div class="meta-block">
+          <span class="meta-label">Available time</span>
+          <span class="meta-value">{{ p.availableTime }}</span>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">Energy check</span>
+          <span class="meta-value">{{ p.energyCheck }}</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="plan-section">
+      <h3>Today's Top 3</h3>
+      <div class="action-list">
+        @for (action of p.topThree; track action.id; let i = $index) {
+          <div class="ranked-action">
+            <span class="rank">{{ i + 1 }}</span>
+            <app-action-card
+              [action]="action"
+              [isTopThree]="true"
+              (markDone)="onMarkDone($event)"
+              (park)="onPark($event)"
+              (start)="onStart($event)"
+            />
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (p.optionalExtras.length) {
+      <section class="plan-section">
+        <h3>Optional extras</h3>
+        <p class="section-hint">If you have spare energy — not required.</p>
+        <div class="action-list compact">
+          @for (action of p.optionalExtras; track action.id) {
+            <app-action-card [action]="action" [compact]="true" [showActions]="false" />
+          }
+        </div>
+      </section>
+    }
+
+    @if (p.parkedItems.length) {
+      <section class="plan-section">
+        <h3>Parked — safely waiting</h3>
+        <p class="section-hint">These can wait. No guilt required.</p>
+        <div class="action-list compact">
+          @for (action of p.parkedItems; track action.id) {
+            <app-action-card [action]="action" [compact]="true" [showActions]="false" />
+          }
+        </div>
+      </section>
+    }
+  } @else {
+    <app-empty-state
+      icon="◷"
+      title="No plan generated yet"
+      message="Click 'Generate Today's Plan' to get three realistic actions based on your goals and open items."
+    />
+  }
+</div>

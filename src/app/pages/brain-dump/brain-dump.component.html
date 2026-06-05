@@ -1,0 +1,217 @@
+<div class="brain-dump-page">
+  <header class="page-header">
+    <div>
+      <h2>Brain Dump Inbox</h2>
+      <p class="subtitle">Quick thoughts or full plans — dump it here, Orderly will structure it.</p>
+    </div>
+  </header>
+
+  <section class="add-section card">
+    <textarea
+      class="add-input"
+      rows="10"
+      placeholder="What's on your mind? A messy thought, a weekly note, or paste a full annual game plan."
+      [ngModel]="newText()"
+      (ngModelChange)="newText.set($event)"
+    ></textarea>
+    <div class="add-footer">
+      <span class="char-count" [class.long]="isLongDraft()">
+        {{ charCount() | number }} characters
+        @if (isLongDraft()) {
+          · long-form document detected
+        }
+      </span>
+      <button type="button" class="btn btn-primary" [disabled]="!newText().trim()" (click)="addItem()">
+        Add to Inbox
+      </button>
+    </div>
+  </section>
+
+  @if (items().length) {
+    <div class="item-list">
+      @for (item of items(); track item.id) {
+        <article class="item-card card" [class.expanded]="expandedId() === item.id">
+          <div class="item-header">
+            <div class="item-badges">
+              <app-status-pill [status]="item.status" />
+              @if (item.documentType) {
+                <span class="doc-type">{{ documentTypeLabel(item) }}</span>
+              }
+            </div>
+            <span class="item-date">{{ formatDate(item.createdAt) }}</span>
+          </div>
+
+          <p class="item-text">{{ previewText(item.rawText, isTextExpanded(item.id)) }}</p>
+          @if (item.rawText.length > 280) {
+            <button type="button" class="btn btn-ghost btn-compact" (click)="toggleTextExpand(item.id)">
+              {{ isTextExpanded(item.id) ? 'Show less' : 'Show full document' }}
+            </button>
+          }
+
+          @if (expandedId() === item.id && processingError()) {
+            <p class="error">{{ processingError() }}</p>
+          }
+
+          @if (expandedId() === item.id && aiSource()) {
+            <p class="ai-source">
+              Processed with {{ aiSource() === 'gemini' ? 'Gemini 2.0 Flash Lite' : 'local parser' }}
+            </p>
+          }
+
+          @if (item.processingSummary) {
+            <p class="processing-summary">{{ item.processingSummary }}</p>
+          }
+
+          @if (item.status !== 'unprocessed') {
+            <div class="item-meta">
+              <app-domain-chip [domain]="item.suggestedDomain" />
+              <span class="priority" [attr.data-level]="item.suggestedPriority.toLowerCase()">
+                {{ item.suggestedPriority }} priority
+              </span>
+              @if (item.themes?.length) {
+                <span class="themes">{{ item.themes?.join(' · ') }}</span>
+              }
+            </div>
+          }
+
+          <div class="item-actions">
+            @if (item.status === 'unprocessed') {
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="processingId() === item.id"
+                (click)="processItem(item.id)"
+              >
+                {{ processingId() === item.id ? 'Processing…' : 'Process with AI' }}
+              </button>
+            }
+            @if (item.status === 'processed' || item.status === 'converted') {
+              <button type="button" class="btn btn-ghost" (click)="toggleExpand(item.id)">
+                {{ expandedId() === item.id ? 'Hide' : 'Show' }} analysis
+              </button>
+            }
+            @if (item.status !== 'parked' && item.status !== 'converted') {
+              <button type="button" class="btn btn-ghost" (click)="parkItem(item.id)">Park</button>
+            }
+            @if (item.status === 'processed') {
+              <button type="button" class="btn btn-ghost" (click)="markProcessed(item.id)">
+                Mark processed
+              </button>
+            }
+          </div>
+
+          @if (expandedId() === item.id) {
+            <div class="analysis">
+              @if (item.weeklyFocus?.length) {
+                <section class="analysis-block">
+                  <h4>This week's focus (max 3)</h4>
+                  <ul>
+                    @for (focus of item.weeklyFocus; track focus) {
+                      <li>{{ focus }}</li>
+                    }
+                  </ul>
+                  @if (item.status !== 'converted') {
+                    <button type="button" class="btn btn-sm" (click)="convertWeeklyFocus(item)">
+                      Add weekly focus to actions
+                    </button>
+                  }
+                </section>
+              }
+
+              @if (item.mustWinItems?.length) {
+                <section class="analysis-block">
+                  <h4>Must-win this year</h4>
+                  <ul>
+                    @for (mustWin of item.mustWinItems; track mustWin) {
+                      <li>{{ mustWin }}</li>
+                    }
+                  </ul>
+                </section>
+              }
+
+              @if (item.quarterFocus?.length) {
+                <section class="analysis-block">
+                  <h4>Q1 foundations</h4>
+                  <ul>
+                    @for (focus of item.quarterFocus; track focus) {
+                      <li>{{ focus }}</li>
+                    }
+                  </ul>
+                </section>
+              }
+
+              @if (item.goalSuggestions?.length) {
+                <section class="analysis-block">
+                  <h4>Suggested goals</h4>
+                  <ul class="goal-list">
+                    @for (goal of item.goalSuggestions; track goal.code) {
+                      <li>
+                        <div class="goal-copy">
+                          <strong>{{ goal.code }} {{ goal.title }}</strong>
+                          <span>{{ goal.nextAction }}</span>
+                          <app-domain-chip [domain]="goal.domain" />
+                        </div>
+                        <button type="button" class="btn btn-sm" (click)="importGoal(goal)">
+                          Import goal
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                  @if (item.status !== 'converted') {
+                    <button type="button" class="btn btn-primary" (click)="importAllGoals(item)">
+                      Import all goals
+                    </button>
+                  }
+                </section>
+              }
+
+              @if (item.parkedItems?.length) {
+                <section class="analysis-block muted">
+                  <h4>Off the table this year</h4>
+                  <ul>
+                    @for (parked of item.parkedItems; track parked) {
+                      <li>{{ parked }}</li>
+                    }
+                  </ul>
+                </section>
+              }
+
+              @if (item.suggestedActions.length) {
+                <section class="analysis-block">
+                  <h4>Suggested actions</h4>
+                  <ul class="action-list">
+                    @for (action of item.suggestedActions; track action) {
+                      <li>
+                        <span>{{ action }}</span>
+                        @if (item.status !== 'converted') {
+                          <button
+                            type="button"
+                            class="btn btn-sm"
+                            (click)="convertAction(item, action)"
+                          >
+                            Convert
+                          </button>
+                        }
+                      </li>
+                    }
+                  </ul>
+                  @if (item.status !== 'converted') {
+                    <button type="button" class="btn btn-primary" (click)="convertAllActions(item)">
+                      Convert all to actions
+                    </button>
+                  }
+                </section>
+              }
+            </div>
+          }
+        </article>
+      }
+    </div>
+  } @else {
+    <app-empty-state
+      icon="◎"
+      title="Inbox is empty"
+      message="Capture a messy thought or paste your full RubenOS game plan. Orderly will extract goals, Q1 focus, and weekly priorities."
+    />
+  }
+</div>

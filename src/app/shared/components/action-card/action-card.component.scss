@@ -1,0 +1,105 @@
+.action-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--border-hover);
+  }
+
+  &.top-three {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface-1));
+  }
+
+  &.compact {
+    padding: 0.75rem 1rem;
+
+    .title {
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.effort,
+.energy {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.energy[data-level='high'] {
+  color: #d4a853;
+}
+
+.reason {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  font-style: italic;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.btn {
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+
+  &:hover {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+}
+
+.btn-primary-sm {
+  background: var(--accent);
+  color: var(--accent-text);
+
+  &:hover {
+    background: var(--accent-hover);
+  }
+}

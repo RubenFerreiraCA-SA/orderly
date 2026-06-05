@@ -1,0 +1,17 @@
+<header class="topbar">
+  <button type="button" class="menu-btn" (click)="menuToggle.emit()" aria-label="Toggle menu">
+    ☰
+  </button>
+  <div class="topbar-center">
+    <h1 class="page-title">{{ pageTitle() }}</h1>
+    <span class="date">{{ today }}</span>
+  </div>
+  @if (showAccount()) {
+    <div class="account">
+      @if (photoUrl()) {
+        <img [src]="photoUrl()!" [alt]="displayName() ?? 'Account'" class="avatar" />
+      }
+      <span class="account-name">{{ displayName() }}</span>
+    </div>
+  }
+</header>

@@ -1,0 +1,17 @@
+{
+  "name": "Orderly",
+  "short_name": "Orderly",
+  "description": "Personal life operating system — turn messy thoughts into useful actions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

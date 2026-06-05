@@ -1,0 +1,12 @@
+<div class="shell" [class.sidebar-open]="sidebarOpen()">
+  <div class="sidebar-backdrop" (click)="closeSidebar()"></div>
+
+  <app-sidebar [open]="sidebarOpen()" (navigate)="closeSidebar()" />
+
+  <div class="main-area">
+    <app-topbar (menuToggle)="toggleSidebar()" />
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

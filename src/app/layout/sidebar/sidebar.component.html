@@ -1,0 +1,27 @@
+<aside class="sidebar">
+  <div class="brand">
+    <span class="brand-icon">◈</span>
+    <div class="brand-text">
+      <span class="brand-name">Orderly</span>
+      <span class="brand-tagline">Life operating system</span>
+    </div>
+  </div>
+
+  <nav class="nav">
+    @for (item of navItems; track item.route) {
+      <a
+        class="nav-link"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        (click)="onNavClick()"
+      >
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <div class="sidebar-footer">
+    <p class="footer-quote">What matters now, and what can safely wait?</p>
+  </div>
+</aside>

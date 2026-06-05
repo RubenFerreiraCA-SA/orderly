@@ -1,0 +1,18 @@
+<div class="goal-card">
+  <div class="card-header">
+    <h3 class="title">{{ goal().title }}</h3>
+    <app-status-pill [status]="goal().status" />
+  </div>
+
+  <div class="meta">
+    <app-domain-chip [domain]="goal().domain" />
+    <span class="horizon">{{ goal().horizon }}</span>
+  </div>
+
+  <p class="why">{{ goal().why }}</p>
+
+  <div class="next-action">
+    <span class="label">Next action</span>
+    <span class="value">{{ goal().nextAction }}</span>
+  </div>
+</div>

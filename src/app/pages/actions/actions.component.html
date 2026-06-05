@@ -1,0 +1,75 @@
+<div class="actions-page">
+  <header class="page-header">
+    <h2>Actions</h2>
+    <p class="subtitle">Concrete next steps across all life domains.</p>
+  </header>
+
+  <div class="filters card">
+    <div class="filter-group">
+      <label for="domain-filter">Domain</label>
+      <select id="domain-filter" [value]="selectedDomain()" (change)="setDomain($any($event.target).value)">
+        <option value="all">All domains</option>
+        @for (d of domains; track d) {
+          <option [value]="d">{{ d }}</option>
+        }
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="status-filter">Status</label>
+      <select id="status-filter" [value]="selectedStatus()" (change)="setStatus($any($event.target).value)">
+        <option value="all">All statuses</option>
+        <option value="not_started">Not started</option>
+        <option value="in_progress">In progress</option>
+        <option value="done">Done</option>
+        <option value="parked">Parked</option>
+      </select>
+    </div>
+    <label class="toggle-group">
+      <input type="checkbox" [checked]="groupByDomain()" (change)="groupByDomain.set($any($event.target).checked)" />
+      Group by domain
+    </label>
+  </div>
+
+  @if (filteredActions().length) {
+    @if (groupByDomain()) {
+      @for (domain of domains; track domain) {
+        @if (groupedActions().has(domain)) {
+          <section class="domain-section">
+            <h3 class="domain-title">{{ domain }}</h3>
+            <div class="action-grid">
+              @for (action of groupedActions().get(domain)!; track action.id) {
+                <app-action-card
+                  [action]="action"
+                  [isTopThree]="isTopThree(action.id)"
+                  (markDone)="onMarkDone($event)"
+                  (park)="onPark($event)"
+                  (promote)="onPromote($event)"
+                  (start)="onStart($event)"
+                />
+              }
+            </div>
+          </section>
+        }
+      }
+    } @else {
+      <div class="action-grid">
+        @for (action of filteredActions(); track action.id) {
+          <app-action-card
+            [action]="action"
+            [isTopThree]="isTopThree(action.id)"
+            (markDone)="onMarkDone($event)"
+            (park)="onPark($event)"
+            (promote)="onPromote($event)"
+            (start)="onStart($event)"
+          />
+        }
+      </div>
+    }
+  } @else {
+    <app-empty-state
+      icon="▷"
+      title="No actions match"
+      message="Adjust filters or convert brain dump suggestions into actions."
+    />
+  }
+</div>

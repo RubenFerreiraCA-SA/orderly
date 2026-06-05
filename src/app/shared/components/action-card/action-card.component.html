@@ -1,0 +1,33 @@
+<div class="action-card" [class.compact]="compact()" [class.top-three]="isTopThree()">
+  <div class="card-header">
+    <h3 class="title">{{ action().title }}</h3>
+    <app-status-pill [status]="action().status" />
+  </div>
+
+  <div class="meta">
+    <app-domain-chip [domain]="action().domain" />
+    <span class="effort">{{ action().effort }}</span>
+    <span class="energy" [attr.data-level]="action().energy">{{ action().energy }} energy</span>
+  </div>
+
+  @if (showReason() && action().reason) {
+    <p class="reason">{{ action().reason }}</p>
+  }
+
+  @if (showActions()) {
+    <div class="actions">
+      @if (action().status === 'not_started') {
+        <button type="button" class="btn btn-ghost" (click)="start.emit(action().id)">Start</button>
+      }
+      @if (action().status !== 'done') {
+        <button type="button" class="btn btn-ghost" (click)="markDone.emit(action().id)">Done</button>
+        <button type="button" class="btn btn-ghost" (click)="park.emit(action().id)">Park</button>
+      }
+      @if (!isTopThree() && action().status !== 'done' && action().status !== 'parked') {
+        <button type="button" class="btn btn-primary-sm" (click)="promote.emit(action().id)">
+          Top 3
+        </button>
+      }
+    </div>
+  }
+</div>

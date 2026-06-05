@@ -1,0 +1,102 @@
+/* Orderly — global design tokens & base styles */
+
+:root {
+  --bg: #0f1117;
+  --surface-0: #161922;
+  --surface-1: #1c2030;
+  --surface-2: #242938;
+  --surface-3: #2e3347;
+  --border: #2a2f42;
+  --border-hover: #3a4058;
+  --text-primary: #e8eaef;
+  --text-secondary: #9ba3b5;
+  --text-muted: #6b7289;
+  --accent: #5cb8a5;
+  --accent-hover: #4da892;
+  --accent-text: #0f1117;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Shared button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+
+  &:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+
+  &:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}

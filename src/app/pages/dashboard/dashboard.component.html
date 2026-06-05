@@ -1,0 +1,101 @@
+<div class="dashboard">
+  <section class="hero">
+    <h2 class="hero-title">What matters now?</h2>
+    <p class="hero-sub">Three useful actions. Everything else can wait.</p>
+  </section>
+
+  <div class="grid">
+    <!-- Today's Top 3 -->
+    <section class="card section-top3">
+      <div class="section-header">
+        <h3>Today's Top 3</h3>
+        <a routerLink="/daily-plan" class="link">Generate plan →</a>
+      </div>
+      @if (topThree().length) {
+        <div class="action-list">
+          @for (action of topThree(); track action.id) {
+            <app-action-card
+              [action]="action"
+              [isTopThree]="true"
+              [showActions]="true"
+              (markDone)="onMarkDone($event)"
+              (park)="onPark($event)"
+              (start)="onStart($event)"
+            />
+          }
+        </div>
+      } @else {
+        <p class="empty-msg">No top 3 set. <a routerLink="/daily-plan">Generate today's plan</a> or promote actions.</p>
+      }
+    </section>
+
+    <!-- Quick Capture -->
+    <section class="card section-capture">
+      <h3>Quick Capture</h3>
+      <p class="capture-hint">Dump what's in your head. Orderly will turn it into structure.</p>
+      <textarea
+        class="capture-input"
+        rows="4"
+        placeholder="Dump what's in your head. Orderly will turn it into structure."
+        [value]="captureText()"
+        (input)="captureText.set($any($event.target).value)"
+      ></textarea>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="!captureText().trim() || processing()"
+        (click)="processCapture()"
+      >
+        {{ processing() ? 'Processing…' : 'Process Thought' }}
+      </button>
+      @if (lastProcessedSummary()) {
+        <p class="process-result">{{ lastProcessedSummary() }}</p>
+      }
+    </section>
+
+    <!-- Focus & Review -->
+    <section class="card section-meta">
+      <div class="meta-item">
+        <span class="meta-label">Current focus</span>
+        <app-domain-chip [domain]="currentFocus()" />
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Upcoming review</span>
+        <p class="meta-value">{{ upcomingReview }}</p>
+      </div>
+    </section>
+
+    <!-- Open Brain Dumps -->
+    <section class="card section-inbox">
+      <div class="section-header">
+        <h3>Open Brain Dump Items</h3>
+        <a routerLink="/brain-dump" class="link">View inbox →</a>
+      </div>
+      @if (openBrainDumps().length) {
+        <ul class="inbox-list">
+          @for (item of openBrainDumps().slice(0, 3); track item.id) {
+            <li class="inbox-item">
+              <p class="inbox-text">{{ item.rawText }}</p>
+              <app-domain-chip [domain]="item.suggestedDomain" />
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-msg">Inbox clear. Capture something when it surfaces.</p>
+      }
+    </section>
+
+    <!-- Active Goals -->
+    <section class="card section-goals">
+      <div class="section-header">
+        <h3>Active Goals</h3>
+        <a routerLink="/goals" class="link">All goals →</a>
+      </div>
+      <div class="goal-list">
+        @for (goal of activeGoals().slice(0, 4); track goal.id) {
+          <app-goal-card [goal]="goal" />
+        }
+      </div>
+    </section>
+  </div>
+</div>

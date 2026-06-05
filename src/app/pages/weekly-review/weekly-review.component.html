@@ -1,0 +1,96 @@
+<div class="weekly-review-page">
+  <header class="page-header">
+    <div>
+      <h2>Weekly Review</h2>
+      <p class="subtitle">What moved, what stalled, and what matters next week.</p>
+    </div>
+    <button type="button" class="btn btn-ghost" (click)="refreshReview()">Refresh review</button>
+  </header>
+
+  @if (review(); as r) {
+    <div class="summary card">
+      <p>{{ r.summary }}</p>
+    </div>
+
+    <div class="review-grid">
+      <section class="card">
+        <h3>Wins this week</h3>
+        <ul>
+          @for (item of r.wins; track item.text) {
+            <li>
+              {{ item.text }}
+              @if (item.domain) {
+                <app-domain-chip [domain]="item.domain" />
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="card">
+        <h3>What moved forward?</h3>
+        <ul>
+          @for (item of r.movedForward; track item.text) {
+            <li>
+              {{ item.text }}
+              @if (item.domain) {
+                <app-domain-chip [domain]="item.domain" />
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="card">
+        <h3>What stalled?</h3>
+        <ul>
+          @for (item of r.stalled; track item.text) {
+            <li>
+              {{ item.text }}
+              @if (item.domain) {
+                <app-domain-chip [domain]="item.domain" />
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="card">
+        <h3>What should be parked?</h3>
+        <ul>
+          @for (item of r.shouldPark; track item.text) {
+            <li>
+              {{ item.text }}
+              @if (item.domain) {
+                <app-domain-chip [domain]="item.domain" />
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="card full-width">
+        <h3>What matters next week?</h3>
+        <ul>
+          @for (item of r.mattersNextWeek; track item.text) {
+            <li>
+              {{ item.text }}
+              @if (item.domain) {
+                <app-domain-chip [domain]="item.domain" />
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="card full-width focus-section">
+        <h3>Suggested next 3 focus areas</h3>
+        <div class="focus-chips">
+          @for (area of r.suggestedFocusAreas; track area) {
+            <app-domain-chip [domain]="$any(area)" />
+          }
+        </div>
+      </section>
+    </div>
+  }
+</div>
