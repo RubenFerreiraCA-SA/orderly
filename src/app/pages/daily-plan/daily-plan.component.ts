@@ -1,8 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActionsService } from '../../core/services/actions.service';
 import { GoalsService } from '../../core/services/goals.service';
 import { AiPlanningService } from '../../core/services/ai-planning.service';
-import { DailyPlan } from '../../core/models/planning.model';
+import { DailyPlanService } from '../../core/services/daily-plan.service';
 import { ActionCardComponent } from '../../shared/components/action-card/action-card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 
@@ -17,10 +17,20 @@ export class DailyPlanComponent {
   private readonly actionsService = inject(ActionsService);
   private readonly goalsService = inject(GoalsService);
   private readonly aiService = inject(AiPlanningService);
+  private readonly dailyPlanService = inject(DailyPlanService);
 
-  plan = signal<DailyPlan | null>(null);
   generating = signal(false);
   topThreeIds = this.actionsService.topThreeIds;
+
+  plan = computed(() => {
+    this.dailyPlanService.stored();
+    return this.dailyPlanService.buildPlan(
+      this.actionsService.actions(),
+      this.actionsService.syncReady()
+    );
+  });
+
+  actionsLoading = computed(() => this.dailyPlanService.isToday() && !this.actionsService.syncReady());
 
   async generatePlan(): Promise<void> {
     this.generating.set(true);
@@ -30,7 +40,7 @@ export class DailyPlanComponent {
         this.goalsService.goals()
       );
       this.actionsService.setTopThree(plan.topThree.map((a) => a.id));
-      this.plan.set(plan);
+      await this.dailyPlanService.save(plan);
     } finally {
       this.generating.set(false);
     }
@@ -38,23 +48,14 @@ export class DailyPlanComponent {
 
   onMarkDone(id: string): void {
     this.actionsService.markDone(id);
-    this.refreshPlanFromService();
   }
 
   onPark(id: string): void {
     this.actionsService.park(id);
-    this.refreshPlanFromService();
   }
 
   onStart(id: string): void {
     this.actionsService.start(id);
-  }
-
-  private refreshPlanFromService(): void {
-    const current = this.plan();
-    if (!current) return;
-    const topThree = this.actionsService.topThree();
-    this.plan.set({ ...current, topThree });
   }
 
   isTopThree(id: string): boolean {

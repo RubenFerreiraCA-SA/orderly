@@ -28,6 +28,10 @@ export function userTopThreeDoc(firestore: Firestore, uid: string) {
   return doc(firestore, 'users', uid, 'preferences', 'topThree');
 }
 
+export function userDailyPlanDoc(firestore: Firestore, uid: string) {
+  return doc(firestore, 'users', uid, 'preferences', 'dailyPlan');
+}
+
 export function userBootstrapDoc(firestore: Firestore, uid: string) {
   return doc(firestore, 'users', uid, 'meta', 'bootstrap');
 }

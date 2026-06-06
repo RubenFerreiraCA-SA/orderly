@@ -26,20 +26,26 @@
 
     <section class="plan-section">
       <h3>Today's Top 3</h3>
-      <div class="action-list">
-        @for (action of p.topThree; track action.id; let i = $index) {
-          <div class="ranked-action">
-            <span class="rank">{{ i + 1 }}</span>
-            <app-action-card
-              [action]="action"
-              [isTopThree]="true"
-              (markDone)="onMarkDone($event)"
-              (park)="onPark($event)"
-              (start)="onStart($event)"
-            />
-          </div>
-        }
-      </div>
+      @if (actionsLoading()) {
+        <p class="section-hint">Loading your actions…</p>
+      } @else if (!p.topThree.length) {
+        <p class="section-hint">Today's planned actions are no longer available. Generate a new plan.</p>
+      } @else {
+        <div class="action-list">
+          @for (action of p.topThree; track action.id; let i = $index) {
+            <div class="ranked-action">
+              <span class="rank">{{ i + 1 }}</span>
+              <app-action-card
+                [action]="action"
+                [isTopThree]="true"
+                (markDone)="onMarkDone($event)"
+                (park)="onPark($event)"
+                (start)="onStart($event)"
+              />
+            </div>
+          }
+        </div>
+      }
     </section>
 
     @if (p.optionalExtras.length) {

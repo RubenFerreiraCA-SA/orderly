@@ -15,6 +15,16 @@ export interface DailyPlan {
   summary: string;
 }
 
+/** Stored in Firestore — action objects are rebuilt from current action list. */
+export interface PersistedDailyPlan {
+  planDate: string;
+  topThreeIds: string[];
+  optionalExtraIds: string[];
+  summary: string;
+  energyCheck: string;
+  availableTime: string;
+}
+
 export interface WeeklyReview {
   wins: ReviewInsight[];
   movedForward: ReviewInsight[];

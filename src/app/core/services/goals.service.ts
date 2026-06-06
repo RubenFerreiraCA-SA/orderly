@@ -1,11 +1,20 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
-import { Firestore, onSnapshot, setDoc } from '@angular/fire/firestore';
+import { Firestore, onSnapshot, setDoc, writeBatch } from '@angular/fire/firestore';
 import { LifeGoal, GoalStatus } from '../models/goal.model';
-import { LifeDomain } from '../models/life-domain.model';
+import { LifeDomain, LIFE_DOMAINS } from '../models/life-domain.model';
 import { MOCK_GOALS } from '../data/mock-data';
 import { AuthService } from './auth.service';
 import { FirestoreBootstrapService } from './firestore-bootstrap.service';
 import { userGoalDoc, userGoalsCollection } from '../firebase/firestore-paths';
+
+export interface GoalSuggestionInput {
+  code: string;
+  title: string;
+  domain: LifeDomain;
+  why: string;
+  nextAction: string;
+  horizon: LifeGoal['horizon'];
+}
 
 @Injectable({ providedIn: 'root' })
 export class GoalsService {
@@ -13,6 +22,7 @@ export class GoalsService {
   private readonly auth = inject(AuthService);
   private readonly bootstrap = inject(FirestoreBootstrapService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly pendingGoalIds = new Set<string>();
 
   private readonly _goals = signal<LifeGoal[]>(
     this.auth.firebaseEnabled ? [] : [...MOCK_GOALS]
@@ -55,10 +65,10 @@ export class GoalsService {
         }
 
         this.unsubscribe = onSnapshot(userGoalsCollection(firestore, uid), (snapshot) => {
-          const goals = snapshot.docs.map(
+          const remote = snapshot.docs.map(
             (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as LifeGoal
           );
-          this._goals.set(goals);
+          this.applyRemoteGoals(remote);
         });
       });
     });
@@ -87,10 +97,10 @@ export class GoalsService {
   addGoal(partial: Omit<LifeGoal, 'id'>): LifeGoal {
     const goal: LifeGoal = {
       ...partial,
-      id: `goal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: this.createId('goal'),
     };
     this._goals.update((list) => [...list, goal]);
-    void this.persistGoal(goal);
+    this.trackPending(goal.id, () => this.persistGoal(goal));
     return goal;
   }
 
@@ -103,12 +113,40 @@ export class GoalsService {
   ): LifeGoal {
     return this.addGoal({
       title,
-      domain,
+      domain: this.normalizeDomain(domain),
       why,
       nextAction,
       horizon,
       status: 'active',
     });
+  }
+
+  addManyFromSuggestions(suggestions: GoalSuggestionInput[]): LifeGoal[] {
+    const goals = suggestions.map((suggestion) => ({
+      id: this.createId('goal'),
+      title: `${suggestion.code} ${suggestion.title}`.trim(),
+      domain: this.normalizeDomain(suggestion.domain),
+      why: suggestion.why,
+      nextAction: suggestion.nextAction,
+      horizon: suggestion.horizon,
+      status: 'active' as const,
+    }));
+
+    if (!goals.length) {
+      return [];
+    }
+
+    this._goals.update((list) => [...list, ...goals]);
+    for (const goal of goals) {
+      this.pendingGoalIds.add(goal.id);
+    }
+    void this.persistGoalsBatch(goals).finally(() => {
+      for (const goal of goals) {
+        this.pendingGoalIds.delete(goal.id);
+      }
+    });
+
+    return goals;
   }
 
   getCurrentFocus(): LifeDomain {
@@ -128,6 +166,37 @@ export class GoalsService {
     return maxDomain;
   }
 
+  private applyRemoteGoals(remote: LifeGoal[]): void {
+    this._goals.update((local) => {
+      const remoteIds = new Set(remote.map((goal) => goal.id));
+      const pending = local.filter(
+        (goal) => this.pendingGoalIds.has(goal.id) && !remoteIds.has(goal.id)
+      );
+      return this.dedupeById([...remote, ...pending]);
+    });
+  }
+
+  private trackPending(id: string, persist: () => Promise<void>): void {
+    this.pendingGoalIds.add(id);
+    void persist().finally(() => this.pendingGoalIds.delete(id));
+  }
+
+  private createId(prefix: string): string {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private normalizeDomain(domain: LifeDomain): LifeDomain {
+    return LIFE_DOMAINS.includes(domain) ? domain : 'Mixed';
+  }
+
+  private dedupeById(goals: LifeGoal[]): LifeGoal[] {
+    const byId = new Map<string, LifeGoal>();
+    for (const goal of goals) {
+      byId.set(goal.id, goal);
+    }
+    return [...byId.values()];
+  }
+
   private async persistGoal(goal: LifeGoal): Promise<void> {
     const uid = this.auth.user()?.uid;
     const firestore = this.firestore;
@@ -135,5 +204,18 @@ export class GoalsService {
 
     const { id, ...data } = goal;
     await setDoc(userGoalDoc(firestore, uid, id), data);
+  }
+
+  private async persistGoalsBatch(goals: LifeGoal[]): Promise<void> {
+    const uid = this.auth.user()?.uid;
+    const firestore = this.firestore;
+    if (!uid || !this.auth.firebaseEnabled || !firestore) return;
+
+    const batch = writeBatch(firestore);
+    for (const goal of goals) {
+      const { id, ...data } = goal;
+      batch.set(userGoalDoc(firestore, uid, id), data);
+    }
+    await batch.commit();
   }
 }

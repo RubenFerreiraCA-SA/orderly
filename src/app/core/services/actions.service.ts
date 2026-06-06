@@ -1,5 +1,5 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
-import { Firestore, onSnapshot, setDoc } from '@angular/fire/firestore';
+import { Firestore, onSnapshot, setDoc, writeBatch } from '@angular/fire/firestore';
 import { LifeAction, ActionStatus, EffortLevel, EnergyLevel, ActionSource } from '../models/action.model';
 import { LifeDomain } from '../models/life-domain.model';
 import { INITIAL_TOP_THREE_IDS, MOCK_ACTIONS } from '../data/mock-data';
@@ -27,6 +27,7 @@ export class ActionsService {
   private readonly _syncReady = signal(!this.auth.firebaseEnabled);
   private unsubscribeActions?: () => void;
   private unsubscribeTopThree?: () => void;
+  private readonly pendingActionIds = new Set<string>();
 
   readonly actions = this._actions.asReadonly();
   readonly topThreeIds = this._topThreeIds.asReadonly();
@@ -80,11 +81,42 @@ export class ActionsService {
   addAction(partial: Omit<LifeAction, 'id'>): LifeAction {
     const action: LifeAction = {
       ...partial,
-      id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: this.createId('act'),
     };
     this._actions.update((list) => [...list, action]);
-    void this.persistAction(action);
+    this.trackPending(action.id, () => this.persistAction(action));
     return action;
+  }
+
+  addManyFromSuggestions(
+    items: Array<{ title: string; domain: LifeDomain; source?: ActionSource }>
+  ): LifeAction[] {
+    const actions = items.map((item) => ({
+      id: this.createId('act'),
+      title: item.title,
+      domain: item.domain,
+      source: item.source ?? ('brain_dump' as const),
+      effort: this.inferEffort(item.title),
+      energy: this.inferEnergy(item.title),
+      status: 'not_started' as const,
+      reason: 'Converted from brain dump',
+    }));
+
+    if (!actions.length) {
+      return [];
+    }
+
+    this._actions.update((list) => [...list, ...actions]);
+    for (const action of actions) {
+      this.pendingActionIds.add(action.id);
+    }
+    void this.persistActionsBatch(actions).finally(() => {
+      for (const action of actions) {
+        this.pendingActionIds.delete(action.id);
+      }
+    });
+
+    return actions;
   }
 
   addFromSuggestion(
@@ -168,10 +200,10 @@ export class ActionsService {
     this.unsubscribeActions = onSnapshot(
       userActionsCollection(firestore, uid),
       (snapshot) => {
-        const actions = snapshot.docs.map(
+        const remote = snapshot.docs.map(
           (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as LifeAction
         );
-        this._actions.set(actions);
+        this.applyRemoteActions(remote);
         this._syncReady.set(true);
       },
       () => this._syncReady.set(true)
@@ -195,6 +227,46 @@ export class ActionsService {
     this.unsubscribeTopThree?.();
     this.unsubscribeActions = undefined;
     this.unsubscribeTopThree = undefined;
+  }
+
+  private applyRemoteActions(remote: LifeAction[]): void {
+    this._actions.update((local) => {
+      const remoteIds = new Set(remote.map((action) => action.id));
+      const pending = local.filter(
+        (action) => this.pendingActionIds.has(action.id) && !remoteIds.has(action.id)
+      );
+      return this.dedupeById([...remote, ...pending]);
+    });
+  }
+
+  private trackPending(id: string, persist: () => Promise<void>): void {
+    this.pendingActionIds.add(id);
+    void persist().finally(() => this.pendingActionIds.delete(id));
+  }
+
+  private createId(prefix: string): string {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private dedupeById(actions: LifeAction[]): LifeAction[] {
+    const byId = new Map<string, LifeAction>();
+    for (const action of actions) {
+      byId.set(action.id, action);
+    }
+    return [...byId.values()];
+  }
+
+  private async persistActionsBatch(actions: LifeAction[]): Promise<void> {
+    const uid = this.auth.user()?.uid;
+    const firestore = this.firestore;
+    if (!uid || !this.auth.firebaseEnabled || !firestore) return;
+
+    const batch = writeBatch(firestore);
+    for (const action of actions) {
+      const { id, ...data } = action;
+      batch.set(userActionDoc(firestore, uid, id), data);
+    }
+    await batch.commit();
   }
 
   private async persistAction(action: LifeAction): Promise<void> {

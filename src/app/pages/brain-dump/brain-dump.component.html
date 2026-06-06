@@ -102,6 +102,10 @@
 
           @if (expandedId() === item.id) {
             <div class="analysis">
+              @if (importFeedback()) {
+                <p class="import-feedback">{{ importFeedback() }}</p>
+              }
+
               @if (item.weeklyFocus?.length) {
                 <section class="analysis-block">
                   <h4>This week's focus (max 3)</h4>
@@ -111,8 +115,13 @@
                     }
                   </ul>
                   @if (item.status !== 'converted') {
-                    <button type="button" class="btn btn-sm" (click)="convertWeeklyFocus(item)">
-                      Add weekly focus to actions
+                    <button
+                      type="button"
+                      class="btn btn-sm"
+                      [disabled]="isImporting('weekly:' + item.id)"
+                      (click)="convertWeeklyFocus(item)"
+                    >
+                      {{ isImporting('weekly:' + item.id) ? 'Adding…' : 'Add weekly focus to actions' }}
                     </button>
                   }
                 </section>
@@ -144,22 +153,39 @@
                 <section class="analysis-block">
                   <h4>Suggested goals</h4>
                   <ul class="goal-list">
-                    @for (goal of item.goalSuggestions; track goal.code) {
+                    @for (goal of item.goalSuggestions; track $index) {
                       <li>
                         <div class="goal-copy">
                           <strong>{{ goal.code }} {{ goal.title }}</strong>
                           <span>{{ goal.nextAction }}</span>
                           <app-domain-chip [domain]="goal.domain" />
                         </div>
-                        <button type="button" class="btn btn-sm" (click)="importGoal(goal)">
-                          Import goal
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          [class.imported]="isGoalImported(item.id, goal)"
+                          [disabled]="isGoalImported(item.id, goal) || isImporting(goalKey(item.id, goal))"
+                          (click)="importGoal(item, goal)"
+                        >
+                          {{
+                            isGoalImported(item.id, goal)
+                              ? 'Imported'
+                              : isImporting(goalKey(item.id, goal))
+                                ? 'Importing…'
+                                : 'Import goal'
+                          }}
                         </button>
                       </li>
                     }
                   </ul>
                   @if (item.status !== 'converted') {
-                    <button type="button" class="btn btn-primary" (click)="importAllGoals(item)">
-                      Import all goals
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      [disabled]="isImporting('goals-all:' + item.id)"
+                      (click)="importAllGoals(item)"
+                    >
+                      {{ isImporting('goals-all:' + item.id) ? 'Importing…' : 'Import all goals' }}
                     </button>
                   }
                 </section>
@@ -180,24 +206,37 @@
                 <section class="analysis-block">
                   <h4>Suggested actions</h4>
                   <ul class="action-list">
-                    @for (action of item.suggestedActions; track action) {
+                    @for (action of item.suggestedActions; track $index) {
                       <li>
                         <span>{{ action }}</span>
                         @if (item.status !== 'converted') {
                           <button
                             type="button"
                             class="btn btn-sm"
+                            [class.imported]="isActionImported(item.id, action)"
+                            [disabled]="isActionImported(item.id, action) || isImporting('action:' + item.id + ':' + action)"
                             (click)="convertAction(item, action)"
                           >
-                            Convert
+                            {{
+                              isActionImported(item.id, action)
+                                ? 'Added'
+                                : isImporting('action:' + item.id + ':' + action)
+                                  ? 'Adding…'
+                                  : 'Convert'
+                            }}
                           </button>
                         }
                       </li>
                     }
                   </ul>
                   @if (item.status !== 'converted') {
-                    <button type="button" class="btn btn-primary" (click)="convertAllActions(item)">
-                      Convert all to actions
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      [disabled]="isImporting('actions-all:' + item.id)"
+                      (click)="convertAllActions(item)"
+                    >
+                      {{ isImporting('actions-all:' + item.id) ? 'Adding…' : 'Convert all to actions' }}
                     </button>
                   }
                 </section>

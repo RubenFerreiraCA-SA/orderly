@@ -28,6 +28,10 @@ export class BrainDumpComponent {
   aiSource = signal<'gemini' | 'local' | null>(null);
   expandedId = signal<string | null>(null);
   expandedTextIds = signal<Set<string>>(new Set());
+  importFeedback = signal<string | null>(null);
+  importingKey = signal<string | null>(null);
+  importedGoalKeys = signal<Set<string>>(new Set());
+  importedActionKeys = signal<Set<string>>(new Set());
 
   readonly charCount = computed(() => this.newText().length);
   readonly isLongDraft = computed(() => this.charCount() > 1500);
@@ -60,39 +64,85 @@ export class BrainDumpComponent {
   }
 
   convertAction(item: BrainDumpItem, actionTitle: string): void {
-    this.actionsService.addFromSuggestion(actionTitle, item.suggestedDomain);
-    if (item.suggestedActions.every((a) => a === actionTitle || item.status === 'converted')) {
-      this.brainDumpService.markConverted(item.id);
-    }
+    this.runImport(`action:${item.id}:${actionTitle}`, () => {
+      this.actionsService.addFromSuggestion(actionTitle, item.suggestedDomain);
+      this.markActionImported(item.id, actionTitle);
+      if (this.allActionsImported(item)) {
+        this.brainDumpService.markConverted(item.id);
+      }
+      this.importFeedback.set(`Added action: ${actionTitle.slice(0, 60)}${actionTitle.length > 60 ? '…' : ''}`);
+    });
   }
 
   convertAllActions(item: BrainDumpItem): void {
-    for (const action of item.suggestedActions) {
-      this.actionsService.addFromSuggestion(action, item.suggestedDomain);
-    }
-    this.brainDumpService.markConverted(item.id);
+    const pending = item.suggestedActions.filter(
+      (action) => !this.isActionImported(item.id, action)
+    );
+    this.runImport(`actions-all:${item.id}`, () => {
+      this.actionsService.addManyFromSuggestions(
+        pending.map((title) => ({ title, domain: item.suggestedDomain }))
+      );
+      for (const action of pending) {
+        this.markActionImported(item.id, action);
+      }
+      this.brainDumpService.markConverted(item.id);
+      this.importFeedback.set(`Added ${pending.length} actions`);
+    });
   }
 
   convertWeeklyFocus(item: BrainDumpItem): void {
-    for (const action of item.weeklyFocus ?? []) {
-      this.actionsService.addFromSuggestion(action, item.suggestedDomain);
-    }
+    const focusItems = item.weeklyFocus ?? [];
+    this.runImport(`weekly:${item.id}`, () => {
+      this.actionsService.addManyFromSuggestions(
+        focusItems.map((title) => ({ title, domain: item.suggestedDomain }))
+      );
+      this.importFeedback.set(`Added ${focusItems.length} weekly focus actions`);
+    });
   }
 
-  importGoal(goal: ExtractedGoalSuggestion): void {
-    this.goalsService.addFromSuggestion(
-      `${goal.code} ${goal.title}`,
-      goal.domain,
-      goal.why,
-      goal.nextAction,
-      goal.horizon
-    );
+  importGoal(item: BrainDumpItem, goal: ExtractedGoalSuggestion): void {
+    const key = this.goalKey(item.id, goal);
+    if (this.importedGoalKeys().has(key)) {
+      return;
+    }
+
+    this.runImport(key, () => {
+      this.goalsService.addFromSuggestion(
+        `${goal.code} ${goal.title}`.trim(),
+        goal.domain,
+        goal.why,
+        goal.nextAction,
+        goal.horizon
+      );
+      this.markGoalImported(key);
+      this.importFeedback.set(`Imported goal: ${goal.title}`);
+    });
   }
 
   importAllGoals(item: BrainDumpItem): void {
-    for (const goal of item.goalSuggestions ?? []) {
-      this.importGoal(goal);
-    }
+    const pending = (item.goalSuggestions ?? []).filter(
+      (goal) => !this.importedGoalKeys().has(this.goalKey(item.id, goal))
+    );
+
+    this.runImport(`goals-all:${item.id}`, () => {
+      const imported = this.goalsService.addManyFromSuggestions(pending);
+      for (const goal of pending) {
+        this.markGoalImported(this.goalKey(item.id, goal));
+      }
+      this.importFeedback.set(`Imported ${imported.length} goals — check the Goals page`);
+    });
+  }
+
+  isGoalImported(itemId: string, goal: ExtractedGoalSuggestion): boolean {
+    return this.importedGoalKeys().has(this.goalKey(itemId, goal));
+  }
+
+  isActionImported(itemId: string, action: string): boolean {
+    return this.importedActionKeys().has(`${itemId}:${action}`);
+  }
+
+  isImporting(key: string): boolean {
+    return this.importingKey() === key;
   }
 
   parkItem(id: string): void {
@@ -141,5 +191,35 @@ export class BrainDumpComponent {
       hour: '2-digit',
       minute: '2-digit',
     });
+  }
+
+  goalKey(itemId: string, goal: ExtractedGoalSuggestion): string {
+    return `${itemId}:${goal.code}:${goal.title}`;
+  }
+
+  private markGoalImported(key: string): void {
+    this.importedGoalKeys.update((current) => new Set(current).add(key));
+  }
+
+  private markActionImported(itemId: string, action: string): void {
+    this.importedActionKeys.update((current) => new Set(current).add(`${itemId}:${action}`));
+  }
+
+  private allActionsImported(item: BrainDumpItem): boolean {
+    return item.suggestedActions.every((action) => this.isActionImported(item.id, action));
+  }
+
+  private runImport(key: string, action: () => void): void {
+    this.importingKey.set(key);
+    this.importFeedback.set(null);
+
+    try {
+      action();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Import failed. Try again.';
+      this.importFeedback.set(message);
+    } finally {
+      this.importingKey.set(null);
+    }
   }
 }
