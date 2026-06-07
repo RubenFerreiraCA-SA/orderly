@@ -9,7 +9,8 @@
     "test": "ng test",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
     "firebase:deploy:functions": "firebase deploy --only functions",
-    "firebase:deploy:hosting": "pnpm run build && firebase deploy --only hosting"
+    "firebase:deploy:hosting": "pnpm run build && firebase deploy --only hosting",
+    "ship": "pnpm run build && firebase deploy"
   },
   "private": true,
   "dependencies": {

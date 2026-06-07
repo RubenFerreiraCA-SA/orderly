@@ -66,6 +66,10 @@ export class BrainDumpService {
     return this._items().find((i) => i.id === id);
   }
 
+  resetAfterWipe(): void {
+    this._items.set([]);
+  }
+
   add(rawText: string): BrainDumpItem {
     const item: BrainDumpItem = {
       id: `bd-${Date.now()}`,

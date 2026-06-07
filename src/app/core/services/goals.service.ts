@@ -80,6 +80,11 @@ export class GoalsService {
     return this._goals().find((g) => g.id === id);
   }
 
+  resetAfterWipe(): void {
+    this.pendingGoalIds.clear();
+    this._goals.set([]);
+  }
+
   getByDomain(domain: LifeDomain): LifeGoal[] {
     return this._goals().filter((g) => g.domain === domain);
   }

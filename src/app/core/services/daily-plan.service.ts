@@ -140,6 +140,13 @@ export class DailyPlanService {
     }
   }
 
+  resetAfterWipe(): void {
+    this._stored.set(null);
+    const uid = this.auth.user()?.uid;
+    localStorage.removeItem(storageKey(uid));
+    localStorage.removeItem(storageKey());
+  }
+
   private async hydrateFromFirestore(firestore: Firestore, uid: string): Promise<void> {
     try {
       const snapshot = await getDoc(userDailyPlanDoc(firestore, uid));

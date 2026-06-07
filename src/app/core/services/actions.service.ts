@@ -78,6 +78,13 @@ export class ActionsService {
     return this._actions().find((a) => a.id === id);
   }
 
+  resetAfterWipe(): void {
+    this.pendingActionIds.clear();
+    this._actions.set([]);
+    this._topThreeIds.set([]);
+    this._syncReady.set(true);
+  }
+
   addAction(partial: Omit<LifeAction, 'id'>): LifeAction {
     const action: LifeAction = {
       ...partial,

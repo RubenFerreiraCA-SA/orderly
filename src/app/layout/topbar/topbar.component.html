@@ -6,12 +6,110 @@
     <h1 class="page-title">{{ pageTitle() }}</h1>
     <span class="date">{{ today }}</span>
   </div>
+
   @if (showAccount()) {
-    <div class="account">
-      @if (photoUrl()) {
-        <img [src]="photoUrl()!" [alt]="displayName() ?? 'Account'" class="avatar" />
+    <div class="account-menu" #accountMenu>
+      <button
+        type="button"
+        class="account-trigger"
+        [attr.aria-expanded]="menuOpen()"
+        aria-haspopup="menu"
+        (click)="toggleMenu()"
+      >
+        @if (photoUrl()) {
+          <img [src]="photoUrl()!" [alt]="displayName() ?? 'Account'" class="avatar" />
+        } @else {
+          <span class="avatar avatar-fallback" aria-hidden="true">{{ initials() }}</span>
+        }
+        <span class="account-name">{{ displayName() }}</span>
+        <span class="chevron" aria-hidden="true">{{ menuOpen() ? '▴' : '▾' }}</span>
+      </button>
+
+      @if (menuOpen()) {
+        <div class="dropdown" role="menu">
+          <div class="dropdown-header">
+            <p class="dropdown-name">{{ displayName() }}</p>
+            @if (email()) {
+              <p class="dropdown-email">{{ email() }}</p>
+            }
+          </div>
+
+          <a routerLink="/settings" class="dropdown-item" role="menuitem" (click)="closeMenu()">
+            Settings
+          </a>
+
+          <button type="button" class="dropdown-item" role="menuitem" [disabled]="accountBusy()" (click)="signOut()">
+            {{ accountBusy() ? 'Signing out…' : 'Sign out' }}
+          </button>
+
+          <div class="dropdown-divider"></div>
+
+          <button
+            type="button"
+            class="dropdown-item danger"
+            role="menuitem"
+            [disabled]="accountBusy()"
+            (click)="openWipeDialog()"
+          >
+            Delete all my data…
+          </button>
+        </div>
       }
-      <span class="account-name">{{ displayName() }}</span>
     </div>
   }
 </header>
+
+@if (wipeDialogOpen()) {
+  <div class="dialog-backdrop" (click)="closeWipeDialog()">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="wipe-title" (click)="$event.stopPropagation()">
+      <h2 id="wipe-title">Delete all your data?</h2>
+      <p class="dialog-lead">
+        This permanently removes everything synced to your Orderly account. It cannot be undone.
+      </p>
+
+      <ul class="wipe-list">
+        <li>All actions and Top 3 selections</li>
+        <li>All goals</li>
+        <li>All brain dumps</li>
+        <li>Today's daily plan</li>
+      </ul>
+
+      <p class="dialog-hint">
+        Your Google account stays signed in. You can start fresh with empty lists.
+      </p>
+
+      <label class="confirm-label" for="wipe-confirm">
+        Type <strong>DELETE</strong> to confirm
+      </label>
+      <input
+        id="wipe-confirm"
+        type="text"
+        class="confirm-input"
+        [value]="wipeConfirmText()"
+        [disabled]="accountBusy()"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="DELETE"
+        (input)="wipeConfirmText.set($any($event.target).value)"
+      />
+
+      @if (accountError()) {
+        <p class="dialog-error">{{ accountError() }}</p>
+      }
+
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" [disabled]="accountBusy()" (click)="closeWipeDialog()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger"
+          [disabled]="!wipeReady() || accountBusy()"
+          (click)="confirmWipe()"
+        >
+          {{ accountBusy() ? 'Deleting…' : 'Delete everything' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
